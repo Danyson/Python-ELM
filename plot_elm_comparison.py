@@ -7,32 +7,25 @@ ELM Classifiers Comparison
 ======================
 A comparison of a several ELMClassifiers with different types of hidden
 layer activations.
-
 ELMClassifier is a classifier based on the Extreme Learning Machine,
 a single layer feedforward network with random hidden layer components
 and least squares fitting of the hidden->output weights by default [1][2]
-
 The point of this example is to illustrate the nature of decision boundaries
 with different hidden layer activation types and regressors.
-
 This should be taken with a grain of salt, as the intuition conveyed by
 these examples does not necessarily carry over to real datasets.
-
 In particular in high dimensional spaces data can more easily be separated
 linearly and the simplicity of classifiers such as naive Bayes and linear SVMs
 might lead to better generalization.
-
 The plots show training points in solid colors and testing points
 semi-transparent. The lower right shows the classification accuracy on the test
 set.
-
 References
 __________
 .. [1] http://www.extreme-learning-machines.org
 .. [2] G.-B. Huang, Q.-Y. Zhu and C.-K. Siew, "Extreme Learning Machine:
           Theory and Applications", Neurocomputing, vol. 70, pp. 489-501,
           2006.
-
 ===============================================================================
 Basis Functions:
   gaussian rbf  : exp(-gamma * (||x-c||/r)^2)
@@ -40,11 +33,9 @@ Basis Functions:
   sinsq         : np.power(np.sin(a), 2.0)
   tribas        : np.clip(1.0 - np.fabs(a), 0.0, 1.0)
   hardlim       : np.array(a > 0.0, dtype=float)
-
      where x   : input pattern
            a   : dot_product(x, c) + b
            c,r : randomly generated components
-
 Label Legend:
   ELM(10,tanh)      :10 tanh units
   ELM(10,tanh,LR)   :10 tanh units, LogisticRegression
@@ -52,7 +43,6 @@ Label Legend:
   ELM(10,tribas)    :10 tribas units
   ELM(10,hardlim)   :10 hardlim units
   ELM(20,rbf(0.1))  :20 rbf units gamma=0.1
-
 """
 print __doc__
 
@@ -69,7 +59,7 @@ import pylab as pl
 from matplotlib.colors import ListedColormap
 from sklearn.datasets import make_moons, make_circles, make_classification
 from sklearn.preprocessing import StandardScaler
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 
 from elm import GenELMClassifier
@@ -211,3 +201,4 @@ for ds in datasets:
 
 figure.subplots_adjust(left=.02, right=.98)
 pl.show()
+
