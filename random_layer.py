@@ -1,20 +1,3 @@
-#-*- coding: utf8
-# Author: David C. Lambert [dcl -at- panix -dot- com]
-# Copyright(c) 2013
-# License: Simple BSD
-
-"""The :mod:`random_layer` module
-implements Random Layer transformers.
-
-Random layers are arrays of hidden unit activations that are
-random functions of input activation values (dot products for simple
-activation functions, distances from prototypes for radial basis
-functions).
-
-They are used in the implementation of Extreme Learning Machines (ELMs),
-but can be used as a general input mapping.
-"""
-
 from abc import ABCMeta, abstractmethod
 
 from math import sqrt
@@ -24,7 +7,7 @@ import scipy.sparse as sp
 from scipy.spatial.distance import cdist, pdist, squareform
 
 from sklearn.metrics import pairwise_distances
-from sklearn.utils import check_random_state, atleast2d_or_csr
+from sklearn.utils import check_random_state,check_array
 from sklearn.utils.extmath import safe_sparse_dot
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -95,20 +78,17 @@ class BaseRandomLayer(BaseEstimator, TransformerMixin):
     # on the input array
     def fit(self, X, y=None):
         """Generate a random hidden layer.
-
         Parameters
         ----------
         X : {array-like, sparse matrix} of shape [n_samples, n_features]
             Training set: only the shape is used to generate random component
             values for hidden units
-
         y : is not used: placeholder to allow for usage in a Pipeline.
-
         Returns
         -------
         self
         """
-        X = atleast2d_or_csr(X)
+        X = check_array(X)
 
         self._generate_components(X)
 
@@ -118,19 +98,16 @@ class BaseRandomLayer(BaseEstimator, TransformerMixin):
     # (which will normally call compute_input_activations first)
     def transform(self, X, y=None):
         """Generate the random hidden layer's activations given X as input.
-
         Parameters
         ----------
         X : {array-like, sparse matrix}, shape [n_samples, n_features]
             Data to transform
-
         y : is not used: placeholder to allow for usage in a Pipeline.
-
         Returns
         -------
         X_new : numpy array of shape [n_samples, n_components]
         """
-        X = atleast2d_or_csr(X)
+        X = check_array(X)
 
         if (self.components_ is None):
             raise ValueError('No components initialized')
@@ -142,43 +119,32 @@ class RandomLayer(BaseRandomLayer):
     """RandomLayer is a transformer that creates a feature mapping of the
     inputs that corresponds to a layer of hidden units with randomly
     generated components.
-
     The transformed values are a specified function of input activations
     that are a weighted combination of dot product (multilayer perceptron)
     and distance (rbf) activations:
-
       input_activation = alpha * mlp_activation + (1-alpha) * rbf_activation
-
       mlp_activation(x) = dot(x, weights) + bias
       rbf_activation(x) = rbf_width * ||x - center||/radius
-
       alpha and rbf_width are specified by the user
-
       weights and biases are taken from normal distribution of
       mean 0 and sd of 1
-
       centers are taken uniformly from the bounding hyperrectangle
       of the inputs, and radii are max(||x-c||)/sqrt(n_centers*2)
-
     The input activation is transformed by a transfer function that defaults
     to numpy.tanh if not specified, but can be any callable that returns an
     array of the same shape as its argument (the input activation array, of
     shape [n_samples, n_hidden]).  Functions provided are 'sine', 'tanh',
     'tribas', 'inv_tribas', 'sigmoid', 'hardlim', 'softlim', 'gaussian',
     'multiquadric', or 'inv_multiquadric'.
-
     Parameters
     ----------
     `n_hidden` : int, optional (default=20)
         Number of units to generate
-
     `alpha` : float, optional (default=0.5)
         Mixing coefficient for distance and dot product input activations:
         activation = alpha*mlp_activation + (1-alpha)*rbf_width*rbf_activation
-
     `rbf_width` : float, optional (default=1.0)
         multiplier on rbf_activation
-
     `user_components`: dictionary, optional (default=None)
         dictionary containing values for components that woud otherwise be
         randomly generated.  Valid key/value pairs are as follows:
@@ -186,33 +152,25 @@ class RandomLayer(BaseRandomLayer):
            'centers': array-like of shape [n_hidden, n_features]
            'biases' : array-like of shape [n_hidden]
            'weights': array-like of shape [n_features, n_hidden]
-
     `activation_func` : {callable, string} optional (default='tanh')
         Function used to transform input activation
-
         It must be one of 'tanh', 'sine', 'tribas', 'inv_tribas',
         'sigmoid', 'hardlim', 'softlim', 'gaussian', 'multiquadric',
         'inv_multiquadric' or a callable.  If None is given, 'tanh'
         will be used.
-
         If a callable is given, it will be used to compute the activations.
-
     `activation_args` : dictionary, optional (default=None)
         Supplies keyword arguments for a callable activation_func
-
     `random_state`  : int, RandomState instance or None (default=None)
         Control the pseudo random number generator used to generate the
         hidden unit weights at fit time.
-
     Attributes
     ----------
     `input_activations_` : numpy array of shape [n_samples, n_hidden]
         Array containing dot(x, hidden_weights) + bias for all samples
-
     `components_` : dictionary containing two keys:
         `bias_weights_`   : numpy array of shape [n_hidden]
         `hidden_weights_` : numpy array of shape [n_features, n_hidden]
-
     See Also
     --------
     """
@@ -424,60 +382,45 @@ class RBFRandomLayer(RandomLayer):
 
 class GRBFRandomLayer(RBFRandomLayer):
     """Random Generalized RBF Hidden Layer transformer
-
     Creates a layer of radial basis function units where:
-
        f(a), s.t. a = ||x-c||/r
-
     with c the unit center
     and f() is exp(-gamma * a^tau) where tau and r are computed
     based on [1]
-
     Parameters
     ----------
     `n_hidden` : int, optional (default=20)
         Number of units to generate, ignored if centers are provided
-
     `grbf_lambda` : float, optional (default=0.05)
         GRBF shape parameter
-
     `gamma` : {int, float} optional (default=1.0)
         Width multiplier for GRBF distance argument
-
     `centers` : array of shape (n_hidden, n_features), optional (default=None)
         If provided, overrides internal computation of the centers
-
     `radii` : array of shape (n_hidden),  optional (default=None)
         If provided, overrides internal computation of the radii
-
     `use_exemplars` : bool, optional (default=False)
         If True, uses random examples from the input to determine the RBF
         centers, ignored if centers are provided
-
     `random_state`  : int or RandomState instance, optional (default=None)
         Control the pseudo random number generator used to generate the
         centers at fit time, ignored if centers are provided
-
     Attributes
     ----------
     `components_` : dictionary containing two keys:
         `radii_`   : numpy array of shape [n_hidden]
         `centers_` : numpy array of shape [n_hidden, n_features]
-
     `input_activations_` : numpy array of shape [n_samples, n_hidden]
         Array containing ||x-c||/r for all samples
-
     See Also
     --------
     ELMRegressor, ELMClassifier, SimpleELMRegressor, SimpleELMClassifier,
     SimpleRandomLayer
-
     References
     ----------
     .. [1] Fernandez-Navarro, et al, "MELM-GRBF: a modified version of the
               extreme learning machine for generalized radial basis function
               neural networks", Neurocomputing 74 (2011), 2502-2510
-
     """
     # def _grbf(acts, taus):
     #     """GRBF activation function"""
